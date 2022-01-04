@@ -25,7 +25,7 @@ public class Barnacle {
         DesktopLauncher.launcher();
 
         try {
-            BarnacleFrame.init();
+//            BarnacleFrame.init();
 
             new Thread(() -> {
                 while(trend.canTrend()) {

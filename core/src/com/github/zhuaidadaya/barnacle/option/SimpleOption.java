@@ -2,7 +2,6 @@ package com.github.zhuaidadaya.barnacle.option;
 
 import com.github.zhuaidadaya.barnacle.entity.PlayerEntity;
 import com.github.zhuaidadaya.barnacle.gui.BarnacleFrame;
-import com.github.zhuaidadaya.barnacle.storage.Variables;
 import org.json.JSONObject;
 
 import java.util.LinkedHashSet;
@@ -88,10 +87,12 @@ public class SimpleOption {
         selectedOptions.add(name);
         PlayerEntity playerN2 = players.get(formatConstant("$n2.name"));
         PlayerEntity playerN1 = players.get(formatConstant("$n1.name"));
-        playerN2.exceptMap.put(playerN2, playerN2.getExcept(playerN1) + except);
-        playerN2.favorMap.put(playerN2, playerN2.getFavor(playerN1) + favor);
+        playerN2.changeExpect(playerN1.getIdentifier(), except);
+        playerN2.changeFavor(playerN1.getIdentifier(), favor);
 
         players.put(formatConstant("$n2.name"),playerN2);
+
+        config.set("players", players.toJSONObject());
 
         try {
             BarnacleFrame.setTip(getFormat(tip).toString());

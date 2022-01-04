@@ -7,6 +7,7 @@ import org.json.JSONObject;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.security.SecureRandom;
 import java.util.*;
 
 public class ConfigUtil {
@@ -28,6 +29,7 @@ public class ConfigUtil {
     private String entrust;
     private String note;
     private boolean empty = false;
+    private int splitRange = 20;
 
     public ConfigUtil(String entrust) {
         utilConfigs.put("path", System.getProperty("user.dir"));
@@ -72,6 +74,11 @@ public class ConfigUtil {
         this.empty = empty;
         if(! empty)
             readConfig(true);
+    }
+
+    public ConfigUtil setSplitRange(int range) {
+        splitRange = range;
+        return this;
     }
 
     public static ConfigUtil emptyConfigUtil() {
@@ -157,19 +164,34 @@ public class ConfigUtil {
             }
             encrypted = cache.startsWith("encryption");
             if(encrypted) {
-                checkCode = Integer.parseInt(String.valueOf(br.readLine().chars().toArray()[0]));
-
                 while((cache = br.readLine()) != null) {
-                    if(! cache.startsWith("/**") || cache.startsWith(" *") || cache.startsWith(" */"))
-                        builder.append(cache);
+                    if(! cache.startsWith("/**") & !cache.startsWith(" *") & !cache.startsWith(" */")) {
+                        if(cache.length() > 0)
+                            builder.append(cache).append("\n");
+                    }
                 }
 
-                StringBuilder s1 = new StringBuilder();
-                int lim = builder.length() > 1 ? builder.charAt(0) : 0;
-                builder = new StringBuilder(builder.length() > 1 ? builder.substring(1) : "");
+                checkCode = Integer.parseInt(String.valueOf(builder.chars().toArray()[0]));
 
-                for(Object o : builder.chars().toArray())
-                    s1.append((char) (Integer.parseInt(o.toString()) - lim - checkCode));
+                BufferedReader configRead = new BufferedReader(new StringReader(builder.toString()));
+
+                StringBuilder s1 = new StringBuilder();
+                while((cache = configRead.readLine()) != null) {
+                    int lim = cache.length() > 1 ? cache.chars().toArray()[0] : 0;
+                    builder = new StringBuilder(builder.length() > 1 ? builder.substring(1) : "");
+
+                    boolean checkSkip = false;
+
+                    for(Object o : cache.chars().toArray()) {
+                        if(checkSkip) {
+                            int details = Integer.parseInt(o.toString());
+                            if(details != 10) {
+                                s1.append((char) (details - lim - checkCode));
+                            }
+                        }
+                        checkSkip = true;
+                    }
+                }
 
                 configs = new JSONObject(s1.toString()).getJSONArray("configs");
                 configSize = s1.length();
@@ -223,7 +245,6 @@ public class ConfigUtil {
                         writeConfig();
                         logger.info("created new config file for " + entrust);
                     } catch (Exception ex) {
-                        ex.printStackTrace();
                         logger.error("failed to create new config file for " + entrust);
                     }
                 }
@@ -234,13 +255,39 @@ public class ConfigUtil {
     public void writeConfig() throws Exception {
         BufferedWriter writer = new BufferedWriter(new FileWriter(utilConfigs.get("path").toString() + "/" + utilConfigs.get("name").toString(), Charset.forName("unicode"), false));
 
-        String write = this.toJSONObject().toString();
+        StringBuilder write = new StringBuilder(this.toJSONObject().toString());
 
-        Random r = new Random();
-        int checkingCodeMax = 1024 * 8;
-        int checkingCodeRange = r.nextInt(checkingCodeMax);
+        Random r = new SecureRandom();
+
+        int split = 0;
+        if(encryption) {
+            int wrap = splitRange;
+
+            for(; wrap > 0; wrap--) {
+                int splitIndex = r.nextInt(100);
+                if((splitIndex + split) < write.length()) {
+                    split += splitIndex;
+                    write.insert(split, "\n");
+                } else {
+                    break;
+                }
+            }
+        }
+
+        int checkingCodeRange = r.nextInt(1024 * 8);
         int checkingCode = r.nextInt((checkingCodeRange / 8) > 0 ? checkingCodeRange / 8 : 16);
-        writer.write(encryption ? "encryption: [check_code=" + checkingCode + ", range=" + checkingCodeRange + ", config_size=" + write.length() + ", config_version=" + utilConfigs.get("version") + "]\n" : "no encryption config: [config_size=" + write.length() + ", config_version=" + utilConfigs.get("version") + "]\n");
+        writer.write(encryption ? "encryption: [check code=" +
+                                  checkingCode + ", " +
+                                  "range=" +
+                                  checkingCodeRange + ", " +
+                                  "config size=" +
+                                  write.length() + ", " +
+                                  "config version=" +
+                                  utilConfigs.get("version") + ", " +
+                                  "type=random sequence, " +
+                                  "split=" + split + ", " +
+                                  "split range=" + splitRange +
+                                  "]\n" : "no encryption config: [config_size=" + write.length() + ", config_version=" + utilConfigs.get("version") + "]\n");
         writer.write(formatNote() + "\n\n");
         if(encryption) {
             writer.write(checkingCodeRange);
@@ -262,7 +309,7 @@ public class ConfigUtil {
                 }
             }
         } else {
-            writer.write(write);
+            writer.write(write.toString());
         }
 
         writer.close();
