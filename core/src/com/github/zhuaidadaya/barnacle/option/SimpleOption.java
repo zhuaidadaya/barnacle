@@ -1,11 +1,12 @@
 package com.github.zhuaidadaya.barnacle.option;
 
 import com.github.zhuaidadaya.barnacle.entity.PlayerEntity;
+import com.github.zhuaidadaya.barnacle.events.ExpectEvent;
+import com.github.zhuaidadaya.barnacle.events.FavorEvent;
 import com.github.zhuaidadaya.barnacle.gui.BarnacleFrame;
 import org.json.JSONObject;
 
 import java.util.LinkedHashSet;
-import java.util.Scanner;
 
 import static com.github.zhuaidadaya.barnacle.storage.Variables.*;
 
@@ -16,8 +17,8 @@ public class SimpleOption {
     private String name;
     private String tip;
     private boolean canOption = true;
-    private int favor = 0;
-    private int except = 0;
+    private FavorEvent favor;
+    private ExpectEvent expect;
 
     public SimpleOption(String name, JSONObject json) {
         try {
@@ -36,24 +37,45 @@ public class SimpleOption {
                 JSONObject event = json.getJSONObject("event");
 
                 try {
-                    favor = event.getInt("favor");
-                } catch(Exception ex) {
+                    JSONObject favor = event.getJSONObject("favor");
+
+                    this.favor = new FavorEvent(favor);
+                } catch (Exception ex) {
 
                 }
 
                 try {
-                    except = event.getInt("expect");
-                } catch(Exception ex) {
+                    JSONObject expect = event.getJSONObject("expect");
+                    this.expect = new ExpectEvent(expect);
+                } catch (Exception ex) {
 
                 }
-            } catch(Exception ex) {
+            } catch (Exception ex) {
 
             }
 
             try {
                 tip = json.getString("tip");
-            } catch(Exception ex) {
+            } catch (Exception ex) {
 
+            }
+
+            try {
+                int loopLeastRequirement = -1;
+                try {
+                    JSONObject requirement = json.getJSONObject("requirement");
+                    loopLeastRequirement= requirement.getJSONObject("loop").getInt("least");
+                }catch (Exception e) {
+
+                }
+
+                if(!(loopLeastRequirement == -1)) {
+                    if(Integer.parseInt(config.getConfigValue("loop")) < loopLeastRequirement) {
+                        canOption = false;
+                    }
+                }
+            } catch(Exception ex) {
+                canOption = false;
             }
         } catch (Exception e) {
             canOption = false;
@@ -77,22 +99,20 @@ public class SimpleOption {
         return canOption;
     }
 
-    public boolean request() {
-        Scanner sc = new Scanner(System.in);
-        logger.info(getFormat(invoke));
-        return sc.nextBoolean();
-    }
-
     public JSONObject trend() {
         selectedOptions.add(name);
-        PlayerEntity playerN2 = players.get(formatConstant("$n2.name"));
-        PlayerEntity playerN1 = players.get(formatConstant("$n1.name"));
-        playerN2.changeExpect(playerN1.getIdentifier(), except);
-        playerN2.changeFavor(playerN1.getIdentifier(), favor);
 
-        players.put(formatConstant("$n2.name"),playerN2);
+        try {
+            expect.apply();
+        } catch (Exception e) {
 
-        config.set("players", players.toJSONObject());
+        }
+
+        try {
+            favor.apply();
+        }catch (Exception e) {
+
+        }
 
         try {
             BarnacleFrame.setTip(getFormat(tip).toString());

@@ -1,0 +1,10 @@
+{
+    "background_default": "textures/bg/background1.png",
+    "background_dialog": "textures/bg/background2.png",
+    "stage1-1": "textures/bg/stage1-1.jpg",
+    "pause": "textures/bg/pause.jpg",
+
+    "button_default": "textures/button/button_default.png",
+    "button_normal": "textures/button/button.png",
+    "button_down": "textures/button/button_down.png"
+}

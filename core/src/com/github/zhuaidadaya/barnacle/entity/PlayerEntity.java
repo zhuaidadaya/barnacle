@@ -5,9 +5,9 @@ import org.json.JSONObject;
 import java.util.LinkedHashMap;
 
 public class PlayerEntity extends Entity {
-    protected String alias;
     private final LinkedHashMap<String, Integer> favorMap = new LinkedHashMap<>();
-    private final LinkedHashMap<String, Integer> expectMap = new LinkedHashMap<>();
+    protected String alias;
+    private int expect = 100;
 
     public PlayerEntity(JSONObject json) {
         name = json.getString("name");
@@ -25,11 +25,7 @@ public class PlayerEntity extends Entity {
         }
 
         try {
-            JSONObject expect = json.getJSONObject("expect");
-
-            for(String s : expect.keySet()) {
-                expectMap.put(s, expect.getInt(s));
-            }
+            expect = json.getInt("expect");
         } catch (Exception ex) {
 
         }
@@ -47,20 +43,20 @@ public class PlayerEntity extends Entity {
         }
     }
 
-    public void changeExpect(String identifier, int expect) {
-        try {
-            expectMap.put(identifier, expect + expectMap.get(identifier));
-        } catch (Exception e) {
-            expectMap.put(identifier, expect);
-        }
+    public void changeExpect(int expect) {
+        this.expect = this.expect + expect;
+    }
+
+    public void setExpect(int expect) {
+        this.expect = expect;
     }
 
     public int getFavor(String player) {
         return favorMap.get(player) == null ? 0 : favorMap.get(player);
     }
 
-    public int getExpect(String player) {
-        return expectMap.get(player) == null ? 0 : expectMap.get(player);
+    public int getExpect() {
+        return expect;
     }
 
     public String getName() {
@@ -84,13 +80,8 @@ public class PlayerEntity extends Entity {
             favor.put(name, favorMap.get(name));
         }
 
-        JSONObject expect = new JSONObject();
-
-        for(String name : expectMap.keySet()) {
-            expect.put(name, expectMap.get(name));
-        }
-
         json.put("favor", favor);
+
         json.put("expect", expect);
 
         return json;

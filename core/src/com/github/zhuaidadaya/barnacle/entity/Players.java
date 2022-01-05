@@ -16,6 +16,17 @@ public class Players {
         return players.get(name);
     }
 
+    public Players(JSONObject json) {
+        for(String s : json.keySet()) {
+            JSONObject player = json.getJSONObject(s);
+            players.put(player.getString("id"), new PlayerEntity(player));
+        }
+    }
+
+    public Players() {
+
+    }
+
     public JSONObject toJSONObject() {
         JSONObject json = new JSONObject();
 

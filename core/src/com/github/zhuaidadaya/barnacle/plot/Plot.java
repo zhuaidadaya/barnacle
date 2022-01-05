@@ -101,14 +101,6 @@ public class Plot {
         return monotonous;
     }
 
-    public boolean hasTitle() {
-        return !title.equals("");
-    }
-
-    public boolean hasSubtitle() {
-        return !subtitle.equals("");
-    }
-
     public boolean hasBackground() {
         return !background.equals("");
     }
@@ -119,10 +111,6 @@ public class Plot {
 
     public boolean hasRightNpc() {
         return !rightNpc.equals("");
-    }
-
-    public boolean hasTip() {
-        return !tip.equals("");
     }
 
     public boolean drawDialogBox() {

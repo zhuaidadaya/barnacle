@@ -1,17 +1,18 @@
 package com.github.zhuaidadaya.barnacle.trend;
 
 import com.github.zhuaidadaya.MCH.log.Logger;
+import com.github.zhuaidadaya.barnacle.events.ExpectEvent;
+import com.github.zhuaidadaya.barnacle.events.FavorEvent;
+import com.github.zhuaidadaya.barnacle.level.Level;
 import com.github.zhuaidadaya.barnacle.option.SimpleOption;
 import com.github.zhuaidadaya.barnacle.plot.Plot;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.security.SecureRandom;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 
 import static com.github.zhuaidadaya.barnacle.storage.Variables.*;
-import static com.github.zhuaidadaya.barnacle.storage.Variables.trend;
 
 public class Trend {
     public static Logger logger_plot = new Logger("Barnacle Plot");
@@ -21,6 +22,7 @@ public class Trend {
     private String trend;
     private String name;
     private String invoke;
+    private String jumpTrendTarget;
     private boolean canTrend = true;
     private boolean trendWait = false;
     private boolean optionWait = false;
@@ -29,6 +31,11 @@ public class Trend {
     private long lastContinue = - 1;
     private long lastSkip = - 1;
     private int latestPlotStep = 0;
+
+    private boolean jumpTrend = false;
+
+    private ExpectEvent expect;
+    private FavorEvent favor;
 
     public Trend(String name, JSONObject json) {
         initTrend(name, json);
@@ -48,8 +55,17 @@ public class Trend {
      * @author 草二号机
      */
     public void initTrend(String name, JSONObject json) {
+        if(expect != null) {
+            expect.apply();
+            expect = null;
+        }
+
+        if(favor != null) {
+            favor.apply();
+            favor = null;
+        }
+
         this.name = name;
-        logger_trend.info("trend to: " + name);
         boolean next = false;
         try {
             trend = json.getString("trend");
@@ -58,6 +74,24 @@ public class Trend {
                 next = true;
             }
         } catch (Exception e) {
+
+        }
+
+        try {
+            JSONObject event = json.getJSONObject("event");
+
+            try {
+                expect = new ExpectEvent(event.getJSONObject("expect"));
+            } catch (Exception e) {
+
+            }
+
+            try {
+                favor = new FavorEvent(event.getJSONObject("favor"));
+            } catch (Exception ex) {
+
+            }
+        } catch (Exception ex) {
 
         }
 
@@ -82,6 +116,12 @@ public class Trend {
         }
     }
 
+    public void jumpTrend(String jumpTrendTarget, String trendName, JSONObject trendJson) {
+        this.jumpTrendTarget = jumpTrendTarget;
+        initTrend(trendName, trendJson);
+        jumpTrend = true;
+    }
+
     /**
      * 同步进展的位置, 直接跳转时使用
      *
@@ -100,7 +140,7 @@ public class Trend {
      * @author 草awa
      */
     public void trendContinue() {
-        if(System.currentTimeMillis() - lastContinue > 500) {
+        if(System.currentTimeMillis() - lastContinue > 1000) {
             trendWait = false;
             lastContinue = System.currentTimeMillis();
         }
@@ -112,7 +152,7 @@ public class Trend {
      * @author 草awa
      */
     public void trendSkip() {
-        if(System.currentTimeMillis() - lastSkip > 500) {
+        if(System.currentTimeMillis() - lastSkip > 1000) {
             trendSkip = true;
             lastSkip = System.currentTimeMillis();
         }
@@ -125,25 +165,22 @@ public class Trend {
      * @author 草二号机
      */
     public void trend() {
+        jumpTrend = false;
         int steps = 0;
         LinkedHashSet<Plot> plots = getPlotDetails(getPlot(invoke));
-        boolean first = false;
         trendSkip = false;
         if(! trendWait) {
             for(Plot plot : plots) {
-                if(! trendSkip | ! first) {
+                if(jumpTrend)
+                    break;
+                if(! trendSkip) {
                     if(! (latestPlotStep > steps)) {
-                        first = true;
-
                         if(! plot.isMonotonous()) {
-                            if(plot.hasTitle())
-                                drawPlotTitle = plot.getTitle();
-                            if(plot.hasSubtitle())
-                                drawPlotSubtitle = plot.getSubtitle();
+                            drawPlotTitle = plot.getTitle();
+                            drawPlotSubtitle = plot.getSubtitle();
+                            drawPlotTip = plot.getTip();
                             if(plot.hasBackground())
                                 drawBackground = plot.getBackground();
-                            if(plot.hasTip())
-                                drawPlotTip = plot.getTip();
                             if(plot.hasRightNpc())
                                 drawPlotRightNpc = plot.getRightNpc();
                             if(plot.hasLeftNpc())
@@ -156,26 +193,36 @@ public class Trend {
                         drawPlotMessage = message;
                         trendWait = true;
 
-                        long waitTime = System.currentTimeMillis();
+                        long waitTime = 0;
+
+                        waitingProgressBarMax = 14000;
 
                         while(trendWait) {
-                            if(trendSkip || (System.currentTimeMillis() - waitTime) > 10000) {
-                                break;
+                            if(jumpTrend || trendSkip || waitTime > 14000) {
+                                if(launched) {
+                                    break;
+                                }
                             }
+
+                            waitingProgressBarValue = waitTime;
+
                             try {
-                                Thread.sleep(500);
+                                Thread.sleep(25);
+                                if(! pause)
+                                    waitTime += 25;
                             } catch (InterruptedException e) {
 
                             }
                         }
-                        drawPlotTip = "saving";
+                        lastContinue = System.currentTimeMillis();
+                        //                        drawPlotTip = "saving";
 
-                        config.set("latest_plot_step", steps);
-                        config.set("latest_plot", name);
-                        config.set("players", players.toJSONObject());
+                        //                        config.set("latest_plot_step", steps);
+                        //                        config.set("latest_plot", name);
+                        //                        config.set("players", players.toJSONObject());
                         latestPlotStep = steps;
 
-                        drawPlotTip = "";
+                        //                        drawPlotTip = "";
                     }
                 } else {
                     String message = plot.getMessage();
@@ -186,15 +233,15 @@ public class Trend {
                 steps++;
             }
 
-            drawPlotTip = "saving";
-
-            config.set("latest_plot_step", steps);
-            config.set("latest_plot", name);
+            //            drawPlotTip = "saving";
+            //
+            //            config.set("latest_plot_step", steps);
+            //            config.set("latest_plot", name);
 
             trendSkip = false;
             drawPlotTip = "";
 
-            if(options.size() > 0) {
+            if(! jumpTrend && options.size() > 0) {
                 optionsButton = new LinkedHashSet<>();
                 boolean lowerCanOption = false;
                 for(SimpleOption option : options) {
@@ -204,32 +251,50 @@ public class Trend {
                     }
                 }
 
-                willOptionIndex = new SecureRandom().nextInt(optionsButton.size());
-                randomDefaultOption = (SimpleOption) optionsButton.toArray()[willOptionIndex];
-                willOption = randomDefaultOption;
+                if(optionsButton.size() > 0) {
 
-                if(! lowerCanOption) {
-                    canTrend = false;
+                    willOptionIndex = new SecureRandom().nextInt(optionsButton.size());
+                    randomDefaultOption = (SimpleOption) optionsButton.toArray()[willOptionIndex];
+                    willOption = randomDefaultOption;
+
+                    if(! lowerCanOption) {
+                        canTrend = false;
+                    } else {
+                        optionWait = true;
+                    }
+
+                    long waitTime = 0;
+
+                    waitingProgressBarMax = 10000;
+
+                    while(optionWait) {
+                        if(waitTime > 10000) {
+                            if(launched) {
+                                trendWillOption();
+                            }
+                        }
+
+                        waitingProgressBarValue = waitTime;
+
+                        try {
+                            Thread.sleep(25);
+                            if(! pause)
+                                waitTime += 25;
+                        } catch (InterruptedException e) {
+
+                        }
+                    }
                 } else {
-                    optionWait = true;
-                }
-
-                long waitTime = System.currentTimeMillis();
-
-                while(optionWait) {
-                    if(System.currentTimeMillis() - waitTime > 10000) {
-                        trendWillOption();
-                    }
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-
-                    }
+                    initTrend(trend, getTrend(trend));
                 }
             } else {
-                initTrend(trend, getTrend(trend));
+                if(jumpTrend)
+                    initTrend(jumpTrendTarget, getTrend(jumpTrendTarget));
+                else
+                    initTrend(trend, getTrend(trend));
             }
         }
+
     }
 
     public JSONObject toJSONObject() {
@@ -239,6 +304,7 @@ public class Trend {
         for(SimpleOption option : this.options) {
             options.put(option.toJSONObject());
         }
+        json.put("trend", trend);
         json.put("options", options);
         json.put("invoke", invoke);
         json.put("latestPlotStep", latestPlotStep);
@@ -265,5 +331,9 @@ public class Trend {
      */
     public boolean optionWaiting() {
         return optionWait;
+    }
+
+    public String getName() {
+        return name;
     }
 }

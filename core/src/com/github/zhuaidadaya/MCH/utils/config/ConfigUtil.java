@@ -234,7 +234,6 @@ public class ConfigUtil {
             if(log)
                 logger.info("load config done");
         } catch (Exception e) {
-            e.printStackTrace();
             logger.error(empty ? ("failed to load config") : ("failed to load config: " + utilConfigs.get("name").toString()));
             if(! empty) {
                 File configFile = new File(utilConfigs.get("path").toString() + "/" + utilConfigs.get("name").toString());
@@ -264,7 +263,10 @@ public class ConfigUtil {
             int wrap = splitRange;
 
             for(; wrap > 0; wrap--) {
-                int splitIndex = r.nextInt(100);
+                int splitIndex = r.nextInt(200);
+                if(splitIndex < 100) {
+                    splitIndex += 100;
+                }
                 if((splitIndex + split) < write.length()) {
                     split += splitIndex;
                     write.insert(split, "\n");

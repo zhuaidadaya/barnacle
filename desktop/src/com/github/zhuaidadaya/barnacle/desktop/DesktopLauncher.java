@@ -13,7 +13,7 @@ public class DesktopLauncher {
 		config.width = frameWidth;
 		config.height = frameHeight;
 		config.foregroundFPS = 360;
-		config.backgroundFPS = 30;
+		config.backgroundFPS = 10;
 		new LwjglApplication(new BarnacleGraphics(), config);
 	}
 }
