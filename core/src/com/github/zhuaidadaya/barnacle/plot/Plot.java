@@ -13,6 +13,7 @@ public class Plot {
     private String rightNpc = "";
     private boolean drawDialogBox = true;
     private boolean monotonous = false;
+    private int time = 14000;
 
     public Plot(String message) {
         this.message = message;
@@ -67,6 +68,12 @@ public class Plot {
         } catch (Exception e) {
 
         }
+
+        try {
+            this.time = json.getInt("time");
+        } catch(Exception e) {
+
+        }
     }
 
     public String getRightNpc() {
@@ -115,5 +122,9 @@ public class Plot {
 
     public boolean drawDialogBox() {
         return drawDialogBox;
+    }
+
+    public int getTime() {
+        return time;
     }
 }

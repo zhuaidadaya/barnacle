@@ -1,9 +1,7 @@
 package com.github.zhuaidadaya.barnacle.option;
 
-import com.github.zhuaidadaya.barnacle.entity.PlayerEntity;
 import com.github.zhuaidadaya.barnacle.events.ExpectEvent;
 import com.github.zhuaidadaya.barnacle.events.FavorEvent;
-import com.github.zhuaidadaya.barnacle.gui.BarnacleFrame;
 import org.json.JSONObject;
 
 import java.util.LinkedHashSet;
@@ -115,7 +113,7 @@ public class SimpleOption {
         }
 
         try {
-            BarnacleFrame.setTip(getFormat(tip).toString());
+            drawPlotTip = getFormat(tip).toString();
         } catch (Exception e) {
 
         }

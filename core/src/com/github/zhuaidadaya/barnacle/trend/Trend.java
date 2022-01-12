@@ -1,11 +1,12 @@
 package com.github.zhuaidadaya.barnacle.trend;
 
-import com.github.zhuaidadaya.MCH.log.Logger;
 import com.github.zhuaidadaya.barnacle.events.ExpectEvent;
 import com.github.zhuaidadaya.barnacle.events.FavorEvent;
 import com.github.zhuaidadaya.barnacle.level.Level;
 import com.github.zhuaidadaya.barnacle.option.SimpleOption;
 import com.github.zhuaidadaya.barnacle.plot.Plot;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -15,9 +16,9 @@ import java.util.LinkedHashSet;
 import static com.github.zhuaidadaya.barnacle.storage.Variables.*;
 
 public class Trend {
-    public static Logger logger_plot = new Logger("Barnacle Plot");
-    public static Logger logger_trend = new Logger("Barnacle Trend");
-
+    public static Logger logger_plot = LogManager.getLogger("Barnacle Plot");
+    public static Logger logger_trend = LogManager.getLogger("Barnacle Trend");
+    private boolean jumpTrending = false;
     private LinkedHashSet<SimpleOption> options = new LinkedHashSet<>();
     private String trend;
     private String name;
@@ -27,13 +28,10 @@ public class Trend {
     private boolean trendWait = false;
     private boolean optionWait = false;
     private boolean trendSkip = false;
-
     private long lastContinue = - 1;
     private long lastSkip = - 1;
     private int latestPlotStep = 0;
-
     private boolean jumpTrend = false;
-
     private ExpectEvent expect;
     private FavorEvent favor;
 
@@ -108,7 +106,8 @@ public class Trend {
 
             trendWait = false;
             optionWait = false;
-            latestPlotStep = 0;
+            if(! jumpTrending)
+                latestPlotStep = 0;
 
             lastSkip = System.currentTimeMillis();
 
@@ -116,22 +115,13 @@ public class Trend {
         }
     }
 
-    public void jumpTrend(String jumpTrendTarget, String trendName, JSONObject trendJson) {
+    public void jumpTrend(String jumpTrendTarget, String trendName, JSONObject trendJson, String time, int latestPlotStep) {
         this.jumpTrendTarget = jumpTrendTarget;
+        recodingPlots.put(recodingPlots.size() + 1, String.format(getFormat("trend.jump").toString(), time));
+        jumpTrending = true;
+        setLatestPlotStep(latestPlotStep);
         initTrend(trendName, trendJson);
         jumpTrend = true;
-    }
-
-    /**
-     * 同步进展的位置, 直接跳转时使用
-     *
-     * @param steps
-     *         同步进展位置
-     *
-     * @author 草awa
-     */
-    public void setLatestPlotStep(int steps) {
-        latestPlotStep = steps;
     }
 
     /**
@@ -165,6 +155,9 @@ public class Trend {
      * @author 草二号机
      */
     public void trend() {
+        logger_trend.info("trending for " + name);
+        logger_trend.info("pre trending for " + trend);
+
         jumpTrend = false;
         int steps = 0;
         LinkedHashSet<Plot> plots = getPlotDetails(getPlot(invoke));
@@ -173,14 +166,16 @@ public class Trend {
             for(Plot plot : plots) {
                 if(jumpTrend)
                     break;
+                String message = plot.getMessage();
                 if(! trendSkip) {
                     if(! (latestPlotStep > steps)) {
                         if(! plot.isMonotonous()) {
-                            drawPlotTitle = plot.getTitle();
-                            drawPlotSubtitle = plot.getSubtitle();
+                            drawPlotTitle = formatConstant(plot.getTitle());
+                            drawPlotSubtitle = formatConstant(plot.getSubtitle());
                             drawPlotTip = plot.getTip();
-                            if(plot.hasBackground())
+                            if(plot.hasBackground()) {
                                 drawBackground = plot.getBackground();
+                            }
                             if(plot.hasRightNpc())
                                 drawPlotRightNpc = plot.getRightNpc();
                             if(plot.hasLeftNpc())
@@ -188,17 +183,17 @@ public class Trend {
                             drawDialogBox = plot.drawDialogBox();
                         }
 
-                        String message = plot.getMessage();
                         logger_plot.info(message);
                         drawPlotMessage = message;
                         trendWait = true;
 
                         long waitTime = 0;
+                        long timedOut = plot.getTime();
 
-                        waitingProgressBarMax = 14000;
+                        waitingProgressBarMax = timedOut;
 
                         while(trendWait) {
-                            if(jumpTrend || trendSkip || waitTime > 14000) {
+                            if(jumpTrend || trendSkip || waitTime > timedOut) {
                                 if(launched) {
                                     break;
                                 }
@@ -208,7 +203,7 @@ public class Trend {
 
                             try {
                                 Thread.sleep(25);
-                                if(! pause)
+                                if(! pause & ! rendingSaveLevel)
                                     waitTime += 25;
                             } catch (InterruptedException e) {
 
@@ -220,15 +215,20 @@ public class Trend {
                         //                        config.set("latest_plot_step", steps);
                         //                        config.set("latest_plot", name);
                         //                        config.set("players", players.toJSONObject());
-                        latestPlotStep = steps;
+                        if(! jumpTrend) {
+                            latestPlotStep = steps;
+                            jumpTrending = false;
+                        }
 
                         //                        drawPlotTip = "";
                     }
                 } else {
-                    String message = plot.getMessage();
                     logger_plot.info(message);
-                    drawPlotMessage = message;
+                    drawPlotMessage = formatConstant(message);
                     drawPlotTip = "skip";
+                }
+                if(! drawPlotMessage.equals("") & ! jumpTrend) {
+                    recodingPlots.put(recodingPlots.size() + 1, drawPlotMessage);
                 }
                 steps++;
             }
@@ -278,7 +278,7 @@ public class Trend {
 
                         try {
                             Thread.sleep(25);
-                            if(! pause)
+                            if(! pause & ! rendingSaveLevel)
                                 waitTime += 25;
                         } catch (InterruptedException e) {
 
@@ -335,5 +335,21 @@ public class Trend {
 
     public String getName() {
         return name;
+    }
+
+    public int getLatestPlotStep() {
+        return latestPlotStep;
+    }
+
+    /**
+     * 同步进展的位置, 直接跳转时使用
+     *
+     * @param steps
+     *         同步进展位置
+     *
+     * @author 草awa
+     */
+    public void setLatestPlotStep(int steps) {
+        latestPlotStep = steps;
     }
 }

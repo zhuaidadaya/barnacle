@@ -22,7 +22,7 @@ public class LevelStorage {
         for(Object o : json.keySet()) {
             Level level = new Level(json.getJSONObject(o.toString()));
 
-            levels.put(o.toString(),level);
+            levels.put(o.toString(), level);
         }
     }
 
@@ -33,7 +33,7 @@ public class LevelStorage {
     public void createLevel(String name) {
         Trend t = new Trend(trend.getName(), trend.toJSONObject());
         Players p = new Players(players.toJSONObject());
-        Level level = new Level(t, p);
+        Level level = new Level(t, p, trend.getLatestPlotStep());
         if(name != null) {
             levels.put(name.equals("") ? level.getTime() : name, level);
         }
@@ -50,7 +50,7 @@ public class LevelStorage {
     public JSONObject toJSONObject() {
         JSONObject json = new JSONObject();
         for(String levelName : levels.keySet()) {
-            json.put(levelName,levels.get(levelName).toJSONObject());
+            json.put(levelName, levels.get(levelName).toJSONObject());
         }
         return json;
     }

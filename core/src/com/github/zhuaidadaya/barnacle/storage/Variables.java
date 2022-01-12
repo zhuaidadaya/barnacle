@@ -2,13 +2,10 @@ package com.github.zhuaidadaya.barnacle.storage;
 
 
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.github.zhuaidadaya.MCH.Resources;
 import com.github.zhuaidadaya.MCH.language.Language;
-import com.github.zhuaidadaya.MCH.log.Logger;
-import com.github.zhuaidadaya.MCH.utils.config.ConfigUtil;
-import com.github.zhuaidadaya.barnacle.BarnacleGraphics;
+import com.github.zhuaidadaya.config.utils.ConfigUtil;
 import com.github.zhuaidadaya.barnacle.entity.PlayerEntity;
 import com.github.zhuaidadaya.barnacle.entity.Players;
 import com.github.zhuaidadaya.barnacle.level.Level;
@@ -16,6 +13,9 @@ import com.github.zhuaidadaya.barnacle.level.LevelStorage;
 import com.github.zhuaidadaya.barnacle.option.SimpleOption;
 import com.github.zhuaidadaya.barnacle.plot.Plot;
 import com.github.zhuaidadaya.barnacle.trend.Trend;
+import com.github.zhuaidadaya.config.utils.EncryptionType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -23,12 +23,14 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 
 public class Variables {
-    public static Logger logger = new Logger("Barnacle");
+    public static String entrust = "Barnacle";
+    public static Logger logger = LogManager.getLogger(entrust);
     public static Language language = Language.CHINESE;
     public static LinkedHashSet<String> selectedOptions = new LinkedHashSet<>();
     public static Players players = new Players();
@@ -42,19 +44,18 @@ public class Variables {
     public static String drawBackground = "background_default";
     public static LevelStorage levels = new LevelStorage();
     public static boolean pause = false;
+    public static boolean shuttingDown = false;
     public static boolean rendingSaveLevel = false;
-    public static int selectedSlot = 0;
     public static boolean launched = false;
+    public static boolean viewingLog = false;
+    public static boolean running = false;
+    public static int selectedSlot = 0;
+    public static HashSet<Integer> savingSlot = new HashSet<>();
 
     public static int frameHeight = 920;
     public static int frameWidth = 1580;
 
-    public static ConfigUtil config = new ConfigUtil(System.getProperty("user.dir"), "BarnacleConfig.mhf", "1.1", "Barnacle").setEncryption(false).setNote("""
-            config of Barnacle, this is Barnacle game database
-                
-            encryption and database provided by MCH
-            """).setSplitRange(500).setEncryption(false);
-    //            .setSplitRange(Integer.MAX_VALUE);
+    public static ConfigUtil config;
     public static Trend trend;
     public static JSONObject resourceJson;
     public static JSONObject libraries;
@@ -71,11 +72,13 @@ public class Variables {
     public static long waitingProgressBarMax = 0;
     public static long waitingProgressBarValue = 0;
 
+    public static LinkedHashMap<Integer, String> recodingPlots = new LinkedHashMap<>();
+
     public static void jumpTrend(Level level) {
         String jumpTrendTarget = level.getTrend().getName();
         players = new Players(level.getPlayers().toJSONObject());
         config.set("players", players.toJSONObject());
-        trend.jumpTrend(jumpTrendTarget, jumpTrendTarget, level.getTrend().toJSONObject());
+        trend.jumpTrend(jumpTrendTarget, jumpTrendTarget, level.getTrend().toJSONObject(), level.getTime(), level.getSteps());
     }
 
     public static void trendWillOption() {
@@ -105,10 +108,15 @@ public class Variables {
         try {
             for(int i = 0; i < 10; i++) {
                 Level level = levels.getLevel(String.valueOf(i));
-                if(level == null)
+                if(level == null) {
                     formats[i] = getFormat("rending.save.slot.null").toString();
-                else
-                    formats[i] = "  " + level.getTime();
+                } else {
+                    if(savingSlot.contains(i)) {
+                        formats[i] = getFormat("rending.save.saving").toString();
+                    } else {
+                        formats[i] = "  " + level.getTime();
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -116,7 +124,7 @@ public class Variables {
 
         text = String.format(text, (Object[]) formats);
 
-        text = text.replace("[" + selectedSlot +"]","> [" + selectedSlot + "]");
+        text = text.replace("[" + selectedSlot + "]", "> [" + selectedSlot + "]");
 
         return text;
     }
@@ -165,6 +173,20 @@ public class Variables {
 
     public static void initVariables() {
         try {
+            config = new ConfigUtil("config/", "BarnacleConfig.mhf", "1.1", "Barnacle").setEncryption(false).setNote("""
+            config of Barnacle, this is Barnacle game database
+                
+            encryption and database provided by MCH
+            """)
+                    .setEncryption(true)
+                    .setEncryptionHead(true)
+                    .setEncryptionType(EncryptionType.COMPOSITE_SEQUENCE)
+                    .setLibraryOffset(50);
+//                    .setEncryptionType(EncryptionType.RANDOM_SEQUENCE)
+//                    .setSplitRange(5000);
+
+            running = true;
+
             InputStream input = Resources.getResource("/format/format.json", Resources.class);
             StringBuilder s = new StringBuilder();
             String cache;
@@ -193,11 +215,11 @@ public class Variables {
 
             players.put(formatConstant("$n1.identifier"), new PlayerEntity(npcs.getJSONObject("n1")));
             players.put(formatConstant("$n2.identifier"), new PlayerEntity(npcs.getJSONObject("n2")));
-//            try {
-//                players = new Players(new JSONObject(config.getConfigValue("players")));
-//            } catch(Exception ex) {
-//
-//            }
+            //            try {
+            //                players = new Players(new JSONObject(config.getConfigValue("players")));
+            //            } catch(Exception ex) {
+            //
+            //            }
 
             trend = new Trend("stage.starter", trends.getJSONObject("stage.starter"));
 
@@ -218,7 +240,7 @@ public class Variables {
             //            }
             try {
                 levels = new LevelStorage(new JSONObject(config.getConfigValue("levels")));
-            } catch(Exception ex) {
+            } catch (Exception ex) {
 
             }
 

@@ -4,6 +4,8 @@
     "stage1-1": "textures/bg/stage1-1.jpg",
     "pause": "textures/bg/pause.jpg",
 
+    "black": "textures/colors/black.png",
+
     "button_default": "textures/button/button_default.png",
     "button_normal": "textures/button/button.png",
     "button_down": "textures/button/button_down.png"

@@ -12,10 +12,12 @@ public class Level {
     private Plot plot;
     private Players players;
     private String time;
+    private int steps;
 
-    public Level(Trend trend, Players players) {
+    public Level(Trend trend, Players players,int steps) {
         this.trend = trend;
         this.players = players;
+        this.steps = steps;
         time = Times.getTime(TimeType.AS_SECOND);
     }
 
@@ -24,6 +26,7 @@ public class Level {
         this.trend = new Trend(trendJson.getString("name"),trendJson);
         this.players = new Players(json.getJSONObject("players"));
         this.time = json.getString("time");
+        this.steps = json.getInt("step");
     }
 
     public JSONObject toJSONObject() {
@@ -31,6 +34,7 @@ public class Level {
         json.put("trend", trend.toJSONObject());
         json.put("players", players.toJSONObject());
         json.put("time", time);
+        json.put("step", steps);
         return json;
     }
 
@@ -44,5 +48,9 @@ public class Level {
 
     public String getTime() {
         return time;
+    }
+
+    public int getSteps() {
+        return steps;
     }
 }
