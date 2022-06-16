@@ -1,0 +1,16 @@
+{
+    "links.github": "https://github.com/zhuaidadaya/Barnacle",
+    "links.github.source": "https://github.com/zhuaidadaya/Barnacle/tree/barnacle",
+    "links.help": "https://github.com/zhuaidadaya/Barnacle/tree/barnacle",
+    "trend.jump": "跳转存档至 %s",
+    "rending.pause.options": "[ESCAPE]返回游戏\n[L]存档\n[E]保存并退出",
+    "rending.launching.options": "[S]开始新进展\n[L]从存档继续\n[O]藤壶设置\n[G]藤壶的Github页面\n[C]藤壶源码(Github)\n[H]藤壶的帮助\n[E]退出藤壶",
+    "rending.save.options": "[ESCAPE]返回游戏\n[L]存档\n[R]回档\n[0] %s\n[1] %s\n[2] %s\n[3] %s\n[4] %s\n[5] %s\n[6] %s\n[7] %s\n[8] %s\n[9] %s",
+    "rending.save.launching.options": "[ESCAPE]返回主页面\n[R]回档\n[0] %s\n[1] %s\n[2] %s\n[3] %s\n[4] %s\n[5] %s\n[6] %s\n[7] %s\n[8] %s\n[9] %s",
+    "rending.save.restoring": "此存档仍在反序列化中...",
+    "rending.save.slot.null": "此处无存档",
+    "rending.save.occupy": "此存档暂不可用",
+    "rending.save.saving": "此存档仍在序列化中...",
+    "rending.save.invalid": "无法存档",
+    "rending.shutting.down": "保存数据中......\n完成后将会退出",
+}
