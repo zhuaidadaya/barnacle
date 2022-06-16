@@ -30,12 +30,12 @@ public class FavorEvent implements Event{
 
     @Override
     public void apply() {
-        PlayerEntity playerTarget = players.get(formatConstant(getTarget() + ".identifier"));
-        PlayerEntity playerFor = players.get(formatConstant(getTargetFor() + ".identifier"));
+        PlayerEntity playerTarget = roles.get(formatConstant(getTarget() + ".identifier"));
+        PlayerEntity playerFor = roles.get(formatConstant(getTargetFor() + ".identifier"));
         playerTarget.changeFavor(playerFor.getIdentifier(), getValue());
 
-        players.put(formatConstant(getTarget() + ".identifier"), playerTarget);
+        roles.put(formatConstant(getTarget() + ".identifier"), playerTarget);
 
-        config.set("players", players.toJSONObject());
+        config.set("players", roles.toJSONObject());
     }
 }

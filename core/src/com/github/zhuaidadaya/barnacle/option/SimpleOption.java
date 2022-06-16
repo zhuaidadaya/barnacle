@@ -68,7 +68,7 @@ public class SimpleOption {
                 }
 
                 if(!(loopLeastRequirement == -1)) {
-                    if(Integer.parseInt(config.getConfigValue("loop")) < loopLeastRequirement) {
+                    if(Integer.parseInt(config.getConfigString("loop")) < loopLeastRequirement) {
                         canOption = false;
                     }
                 }

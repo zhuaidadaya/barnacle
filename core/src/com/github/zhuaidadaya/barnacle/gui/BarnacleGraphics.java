@@ -22,6 +22,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.github.zhuaidadaya.barnacle.option.SimpleOption;
+import com.github.zhuaidadaya.barnacle.plot.*;
+import com.github.zhuaidadaya.rikaishinikui.handler.universal.runnable.*;
 import org.json.JSONObject;
 
 import java.util.LinkedHashMap;
@@ -30,28 +32,28 @@ import java.util.LinkedHashSet;
 import static com.github.zhuaidadaya.barnacle.storage.Variables.*;
 
 public class BarnacleGraphics extends ApplicationAdapter {
-    Stage stage;
-    SpriteBatch batch;
-    //    Texture img;
-    //    Texture img2;
-    //    Texture button_default;
-    //    Texture button_normal;
-    //    Texture button_down;
-    BitmapFont messageDrawer;
-    BitmapFont titleDrawer;
-    BitmapFont tipDrawer;
-    BitmapFont pauseDrawer;
-    BitmapFont shutdownDrawer;
-    FreeTypeFontGenerator textGenerator;
-    LinkedHashSet<TextButton> buttons;
-    ProgressBar bar;
-
+    private final Color messageColor = new Color(0, 0, 0, 100);
     long lastOption = - 1;
     long lastPause = - 1;
     long lastSwitchSlot = - 1;
     long lastSaveLevel = - 1;
     long lastViewLog = - 1;
     long rendingStart = - 1;
+    private Stage stage;
+    private SpriteBatch batch;
+    //    Texture img;
+    //    Texture img2;
+    //    Texture button_default;
+    //    Texture button_normal;
+    //    Texture button_down;
+    private BitmapFont messageDrawer;
+    private BitmapFont titleDrawer;
+    private BitmapFont tipDrawer;
+    private BitmapFont pauseDrawer;
+    private BitmapFont shutdownDrawer;
+    private FreeTypeFontGenerator textGenerator;
+    private final LinkedHashSet<TextButton> buttons = new LinkedHashSet<>();
+    private ProgressBar bar;
 
     @Override
     public void create() {
@@ -68,7 +70,7 @@ public class BarnacleGraphics extends ApplicationAdapter {
 
         messageDrawer = textGenerator.generateFont(parameter);
         messageDrawer.getData().setScale(1.1f);
-        messageDrawer.setColor(new Color(0, 0, 0, 100));
+        messageDrawer.setColor(messageColor);
 
         pauseDrawer = textGenerator.generateFont(parameter);
         pauseDrawer.getData().setScale(1.4f);
@@ -103,21 +105,70 @@ public class BarnacleGraphics extends ApplicationAdapter {
     }
 
     public void loadTextures() {
-        for(String s : texturesJson.keySet()) {
-            textureAtlas.put(s, new Texture(texturesJson.getString(s)));
+        for (String s : texturesJson.keySet()) {
+            textures.set(s, new Texture(texturesJson.getString(s)));
+        }
+    }
+
+    @Override
+    public void render() {
+        ScreenUtils.clear(0, 0, 0, 0);
+
+        if (! shuttingDown) {
+            if (! pause & ! rendingSaveLevel)
+                preRendingGame();
+
+            batch.begin();
+
+            if (! pause & ! rendingSaveLevel)
+                rendingGame();
+            else
+                rendingPause();
+        } else {
+            batch.begin();
+
+            rendingShuttingDown();
+        }
+
+        batch.end();
+    }
+
+    public void rendingShuttingDown() {
+        batch.draw(getTexture("black"), 0, 50, frameWidth, frameHeight - (50 * 2));
+        shutdownDrawer.draw(batch, getFormat("rending.shutting.down").toString(), (frameWidth / 2f) - 100, frameHeight / 2f);
+    }
+
+    public void preRendingGame() {
+        try {
+            if (trend.optionWaiting()) {
+                if (optionsButton.size() != optionsButtonMap.size()) {
+                    applyButtons(false);
+                }
+
+                for (TextButton b : buttons) {
+                    stage.addActor(b);
+                }
+
+                stage.act();
+                stage.draw();
+            } else {
+                stage.clear();
+            }
+        } catch (Exception e) {
+
         }
     }
 
     public void applyButtons(boolean update) {
-        buttons = new LinkedHashSet<>();
+        buttons.clear();
 
         int y = 180 + 50;
 
-        if(update) {
+        if (update) {
             LinkedHashMap<TextButton, SimpleOption> clone = optionsButtonMap;
             optionsButtonMap = new LinkedHashMap<>();
 
-            for(TextButton button : clone.keySet()) {
+            for (TextButton button : clone.keySet()) {
                 TextButton.TextButtonStyle style = button.getStyle();
                 style.up = new TextureRegionDrawable(new TextureRegion(getTexture(! clone.get(button).equals(willOption) ? "button_normal" : "button_default")));
 
@@ -127,11 +178,10 @@ public class BarnacleGraphics extends ApplicationAdapter {
                 optionsButtonMap.put(button, clone.get(button));
             }
         } else {
-            for(SimpleOption option : optionsButton) {
+            for (SimpleOption option : optionsButton) {
                 TextButton button;
                 y -= 50;
                 TextButton.TextButtonStyle style = new TextButton.TextButtonStyle();
-
                 //            style.up = new TextureRegionDrawable(new TextureRegion(new Texture("textures/button/button.png")));
                 style.up = new TextureRegionDrawable(new TextureRegion(! option.equals(willOption) ? getTexture("button_normal") : getTexture("button_default")));
                 style.down = new TextureRegionDrawable(new TextureRegion(getTexture("button_down")));
@@ -155,60 +205,11 @@ public class BarnacleGraphics extends ApplicationAdapter {
         }
     }
 
-    @Override
-    public void render() {
-        ScreenUtils.clear(0, 0, 0, 0);
-
-        if(! shuttingDown) {
-            if(! pause & ! rendingSaveLevel)
-                preRendingGame();
-
-            batch.begin();
-
-            if(! pause & ! rendingSaveLevel)
-                rendingGame();
-            else
-                rendingPause();
-        } else {
-            batch.begin();
-
-            rendingShuttingDown();
-        }
-
-        batch.end();
-    }
-
-    public void rendingShuttingDown() {
-        batch.draw(getTexture("black"), 0, 50, frameWidth, frameHeight - (50 * 2));
-        shutdownDrawer.draw(batch, getFormat("rending.shutting.down").toString(), (frameWidth / 2f) - 100, frameHeight / 2f);
-    }
-
-    public void preRendingGame() {
-        try {
-            if(trend.optionWaiting()) {
-                if(optionsButton.size() != optionsButtonMap.size()) {
-                    applyButtons(false);
-                }
-
-                for(TextButton b : buttons) {
-                    stage.addActor(b);
-                }
-
-                stage.act();
-                stage.draw();
-            } else {
-                stage.clear();
-            }
-        } catch (Exception e) {
-
-        }
-    }
-
     public void rendingGame() {
         batch.draw(getTexture(drawBackground), 0, 50, frameWidth, frameHeight - (50 * 2));
 
-        if(! viewingLog) {
-            if(drawDialogBox) {
+        if (! viewingLog) {
+            if (drawDialogBox) {
                 batch.draw(getTexture("background_dialog"), 0, 50, frameWidth, 150);
                 titleDrawer.draw(batch, drawPlotTitle, 10, 120 + 50);
             }
@@ -216,17 +217,19 @@ public class BarnacleGraphics extends ApplicationAdapter {
             batch.draw(getTexture("background_dialog"), 0, 50, frameWidth, frameHeight - (50 * 2));
 
             int y = 80 + 50 + 50;
-            for(int plotIndex = recodingPlots.size(); plotIndex > 0 & y < frameHeight; plotIndex--) {
-                String plot = recodingPlots.get(plotIndex);
-                if(! drawPlotMessage.equals(plot)) {
-                    messageDrawer.draw(batch, plot, 30, y);
+            for (int plotIndex = recodingPlots.size(); plotIndex > 0 && y < frameHeight; plotIndex--) {
+                Plot plot = recodingPlots.get(plotIndex);
+                if (! drawPlotMessage.equals(plot)) {
+                    messageDrawer.setColor(plot.color() == null ? messageColor : plot.color());
+                    messageDrawer.draw(batch, plot.message(), 30, y);
                     y += 50;
                 }
             }
         }
 
         try {
-            messageDrawer.draw(batch, drawPlotMessage, 30, 80 + 50);
+            messageDrawer.setColor(drawPlotMessage.color() == null ? messageColor : drawPlotMessage.color());
+            messageDrawer.draw(batch, drawPlotMessage.message(), 30, 80 + 50);
             tipDrawer.draw(batch, drawPlotTip, 5, 20);
         } catch (Exception e) {
 
@@ -236,16 +239,16 @@ public class BarnacleGraphics extends ApplicationAdapter {
         bar.setValue(waitingProgressBarValue);
         bar.draw(batch, 100);
 
-        if(trend.optionWaiting()) {
-            for(TextButton b : buttons) {
+        if (trend.optionWaiting()) {
+            for (TextButton b : buttons) {
                 b.draw(batch, 100);
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
-                if(System.currentTimeMillis() - lastOption > 300) {
+            if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+                if (System.currentTimeMillis() - lastOption > 300) {
                     lastOption = System.currentTimeMillis();
                     Object[] options = optionsButton.toArray();
-                    if((willOptionIndex + 1) < options.length) {
+                    if ((willOptionIndex + 1) < options.length) {
                         willOptionIndex++;
                     } else {
                         willOptionIndex = 0;
@@ -253,15 +256,13 @@ public class BarnacleGraphics extends ApplicationAdapter {
                     willOption = (SimpleOption) options[willOptionIndex];
 
                     applyButtons(true);
-
-                    System.gc();
                 }
             } else {
-                if(Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-                    if(System.currentTimeMillis() - lastOption > 300) {
+                if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+                    if (System.currentTimeMillis() - lastOption > 300) {
                         lastOption = System.currentTimeMillis();
                         Object[] options = optionsButton.toArray();
-                        if((willOptionIndex + 1) > options.length - 1) {
+                        if ((willOptionIndex + 1) > options.length - 1) {
                             willOptionIndex = 0;
                         } else {
                             willOptionIndex++;
@@ -269,27 +270,25 @@ public class BarnacleGraphics extends ApplicationAdapter {
                         willOption = (SimpleOption) options[willOptionIndex];
 
                         applyButtons(true);
-
-                        System.gc();
                     }
                 }
             }
-            if(Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
                 trendWillOption();
             }
         } else {
-            if(Gdx.input.isKeyPressed(Input.Keys.ENTER)) {
-                if(Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.ENTER)) {
+                if (Gdx.input.isKeyPressed(Input.Keys.CONTROL_LEFT)) {
                     trend.trendSkip();
                 } else {
                     trend.trendContinue();
                 }
             } else {
-                if(Gdx.input.isTouched()) {
+                if (Gdx.input.isTouched()) {
                     trend.trendContinue();
                 } else {
-                    if(Gdx.input.isKeyPressed(Input.Keys.G)) {
-                        if(System.currentTimeMillis() - lastViewLog > 300) {
+                    if (Gdx.input.isKeyPressed(Input.Keys.G)) {
+                        if (System.currentTimeMillis() - lastViewLog > 300) {
                             lastViewLog = System.currentTimeMillis();
                             viewingLog = ! viewingLog;
                         }
@@ -298,102 +297,110 @@ public class BarnacleGraphics extends ApplicationAdapter {
             }
         }
 
-        if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
-            if(System.currentTimeMillis() - lastPause > 300) {
+        if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
+            if (System.currentTimeMillis() - lastPause > 300) {
                 lastPause = System.currentTimeMillis();
                 pause = true;
             }
         }
 
-        if(Gdx.input.isKeyPressed(Input.Keys.L)) {
-            if(System.currentTimeMillis() - lastPause > 300) {
+        if (Gdx.input.isKeyPressed(Input.Keys.L)) {
+            if (System.currentTimeMillis() - lastPause > 300) {
                 lastPause = System.currentTimeMillis();
                 lastSaveLevel = System.currentTimeMillis();
                 rendingSaveLevel = true;
             }
         }
 
-        if(Gdx.input.isKeyPressed(Input.Keys.E)) {
+        if (Gdx.input.isKeyPressed(Input.Keys.E)) {
             exit();
         }
+    }
+
+    public void exit() {
+        shuttingDown = true;
+        running = false;
     }
 
     public void rendingPause() {
         batch.draw(getTexture("pause"), 0, 50, frameWidth, frameHeight - (50 * 2));
 
-        if(rendingSaveLevel) {
+        if (rendingSaveLevel) {
             try {
                 pauseDrawer.draw(batch, formatLevels(getFormat("rending.save.options").toString()), 20, frameHeight - 55);
             } catch (Exception e) {
 
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
-                if(System.currentTimeMillis() - lastPause > 300) {
+            if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
+                if (System.currentTimeMillis() - lastPause > 300) {
                     lastPause = System.currentTimeMillis();
                     rendingSaveLevel = false;
                 }
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
-                if(System.currentTimeMillis() - lastSwitchSlot > 200) {
+            if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+                if (System.currentTimeMillis() - lastSwitchSlot > 200) {
                     lastSwitchSlot = System.currentTimeMillis();
-                    if(selectedSlot > 0)
+                    if (selectedSlot > 0)
                         selectedSlot--;
                     else
                         selectedSlot = 9;
                 }
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-                if(System.currentTimeMillis() - lastSwitchSlot > 200) {
+            if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+                if (System.currentTimeMillis() - lastSwitchSlot > 200) {
                     lastSwitchSlot = System.currentTimeMillis();
-                    if(selectedSlot < 9)
+                    if (selectedSlot < 9)
                         selectedSlot++;
                     else
                         selectedSlot = 0;
                 }
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.L)) {
-                if(System.currentTimeMillis() - lastSaveLevel > 500) {
-                    if(!savingSlot.contains(selectedSlot)) {
-                        new Thread(() -> {
+            if (Gdx.input.isKeyPressed(Input.Keys.L)) {
+                if (System.currentTimeMillis() - lastSaveLevel > 500) {
+                    if (! savingSlot.contains(selectedSlot)) {
+                        TaskOrder<String> order = new TaskOrder<>(e -> {
+                            drawPlotTip = "Saving...";
                             int selectedSlotCache = selectedSlot;
                             savingSlot.add(selectedSlotCache);
                             lastSaveLevel = System.currentTimeMillis();
                             levels.createLevel(String.valueOf(selectedSlotCache));
                             config.set("levels", levels.toJSONObject());
                             savingSlot.remove(selectedSlotCache);
-                        }).start();
+                            drawPlotTip = "";
+                        }, "");
+                        order.call(null);
                     }
                 }
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.R)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.R)) {
                 jumpTrend(levels.getLevel(String.valueOf(selectedSlot)));
                 rendingSaveLevel = false;
                 pause = false;
             }
         } else {
             try {
-                pauseDrawer.draw(batch, getFormat("rending.pause.options").toString(), 20, frameHeight - 55);
+                pauseDrawer.draw(batch, getFormat("rending.pause.options"), 20, frameHeight - 55);
             } catch (Exception e) {
 
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
-                if(System.currentTimeMillis() - lastPause > 300) {
+            if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
+                if (System.currentTimeMillis() - lastPause > 300) {
                     lastPause = System.currentTimeMillis();
                     pause = false;
                 }
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.E)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.E)) {
                 exit();
             }
 
-            if(Gdx.input.isKeyPressed(Input.Keys.L)) {
+            if (Gdx.input.isKeyPressed(Input.Keys.L)) {
                 lastSaveLevel = System.currentTimeMillis();
                 pause = true;
                 rendingSaveLevel = true;
@@ -403,7 +410,6 @@ public class BarnacleGraphics extends ApplicationAdapter {
 
     @Override
     public void dispose() {
-        config.shutdown();
         logger.info("stopping game");
         batch.dispose();
         stage.dispose();
@@ -411,10 +417,5 @@ public class BarnacleGraphics extends ApplicationAdapter {
         tipDrawer.dispose();
         pauseDrawer.dispose();
         messageDrawer.dispose();
-    }
-
-    public void exit() {
-        shuttingDown = true;
-        running = false;
     }
 }

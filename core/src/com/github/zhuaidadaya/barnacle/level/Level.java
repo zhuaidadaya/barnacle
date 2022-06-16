@@ -1,22 +1,21 @@
 package com.github.zhuaidadaya.barnacle.level;
 
-import com.github.zhuaidadaya.MCH.time.TimeType;
-import com.github.zhuaidadaya.MCH.time.Times;
-import com.github.zhuaidadaya.barnacle.entity.Players;
+import com.github.cao.awa.modmdo.times.*;
+import com.github.zhuaidadaya.barnacle.entity.Role;
 import com.github.zhuaidadaya.barnacle.plot.Plot;
 import com.github.zhuaidadaya.barnacle.trend.Trend;
 import org.json.JSONObject;
 
 public class Level {
-    private Trend trend;
+    private final Trend trend;
     private Plot plot;
-    private Players players;
-    private String time;
-    private int steps;
+    private final Role roles;
+    private final String time;
+    private final int steps;
 
-    public Level(Trend trend, Players players,int steps) {
+    public Level(Trend trend, Role roles, int steps) {
         this.trend = trend;
-        this.players = players;
+        this.roles = roles;
         this.steps = steps;
         time = Times.getTime(TimeType.AS_SECOND);
     }
@@ -24,7 +23,7 @@ public class Level {
     public Level(JSONObject json) {
         JSONObject trendJson = json.getJSONObject("trend");
         this.trend = new Trend(trendJson.getString("name"),trendJson);
-        this.players = new Players(json.getJSONObject("players"));
+        this.roles = new Role(json.getJSONObject("roles"));
         this.time = json.getString("time");
         this.steps = json.getInt("step");
     }
@@ -32,14 +31,14 @@ public class Level {
     public JSONObject toJSONObject() {
         JSONObject json = new JSONObject();
         json.put("trend", trend.toJSONObject());
-        json.put("players", players.toJSONObject());
+        json.put("roles", roles.toJSONObject());
         json.put("time", time);
         json.put("step", steps);
         return json;
     }
 
-    public Players getPlayers() {
-        return players;
+    public Role getRoles() {
+        return roles;
     }
 
     public Trend getTrend() {

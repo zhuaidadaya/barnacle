@@ -30,7 +30,7 @@ public class ExpectEvent implements Event {
 
     @Override
     public void apply() {
-        PlayerEntity playerTarget = players.get(formatConstant(getTarget() + ".identifier"));
+        PlayerEntity playerTarget = roles.get(formatConstant(getTarget() + ".identifier"));
 
         if(change == - 1) {
             playerTarget.changeExpect(getValue());
@@ -38,8 +38,8 @@ public class ExpectEvent implements Event {
             playerTarget.setExpect(change);
         }
 
-        players.put(formatConstant(getTarget() + ".identifier"), playerTarget);
+        roles.put(formatConstant(getTarget() + ".identifier"), playerTarget);
 
-        config.set("players", players.toJSONObject());
+        config.set("players", roles.toJSONObject());
     }
 }

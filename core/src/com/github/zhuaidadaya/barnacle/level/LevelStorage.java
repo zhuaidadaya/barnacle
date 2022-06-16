@@ -1,13 +1,10 @@
 package com.github.zhuaidadaya.barnacle.level;
 
-import com.github.zhuaidadaya.MCH.time.TimeType;
-import com.github.zhuaidadaya.MCH.time.Times;
-import com.github.zhuaidadaya.barnacle.entity.Players;
+import com.github.zhuaidadaya.barnacle.entity.Role;
 import com.github.zhuaidadaya.barnacle.trend.Trend;
 import org.json.JSONObject;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 
 import static com.github.zhuaidadaya.barnacle.storage.Variables.*;
 
@@ -32,7 +29,7 @@ public class LevelStorage {
 
     public void createLevel(String name) {
         Trend t = new Trend(trend.getName(), trend.toJSONObject());
-        Players p = new Players(players.toJSONObject());
+        Role p = new Role(roles.toJSONObject());
         Level level = new Level(t, p, trend.getLatestPlotStep());
         if(name != null) {
             levels.put(name.equals("") ? level.getTime() : name, level);

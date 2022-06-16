@@ -1,19 +1,26 @@
 package com.github.zhuaidadaya.barnacle.plot;
 
-import org.jetbrains.annotations.Nullable;
+import com.badlogic.gdx.graphics.*;
+import com.github.zhuaidadaya.barnacle.math.*;
+import com.github.zhuaidadaya.barnacle.storage.*;
+import com.github.zhuaidadaya.rikaishinikui.handler.universal.entrust.*;
 import org.json.JSONObject;
+
+import static com.github.zhuaidadaya.barnacle.storage.Variables.formatConstant;
+import static com.github.zhuaidadaya.barnacle.storage.Variables.getFormat;
 
 public class Plot {
     private String tip = "";
     private String message = "";
     private String title = "";
-    private String subtitle= "";
+    private String subtitle = "";
     private String background = "";
     private String leftNpc = "";
     private String rightNpc = "";
+    private Color color;
     private boolean drawDialogBox = true;
     private boolean monotonous = false;
-    private int time = 14000;
+    private int time = 10000;
 
     public Plot(String message) {
         this.message = message;
@@ -21,110 +28,101 @@ public class Plot {
     }
 
     public Plot(JSONObject json) {
-        try {
-            this.message = json.getString("message");
-        } catch (Exception e) {
+        EntrustExecution.tryTemporary(() -> {
+            this.message = getFormat(json.getString("message"));
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.title = json.getString("title");
-        } catch (Exception e) {
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.subtitle = json.getString("subtitle");
-        } catch (Exception e) {
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.tip = json.getString("tip");
-        } catch (Exception e) {
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.background = json.getString("background");
-        } catch (Exception e) {
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.leftNpc = json.getString("npc_left");
-        } catch (Exception e) {
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.rightNpc = json.getString("npc_right");
-        } catch (Exception e) {
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.drawDialogBox = json.getBoolean("dialog");
-        } catch (Exception e) {
+        });
 
-        }
-
-        try {
+        EntrustExecution.tryTemporary(() -> {
             this.time = json.getInt("time");
-        } catch(Exception e) {
+        });
 
-        }
+        EntrustExecution.tryTemporary(() -> {
+            JSONObject c = json.getJSONObject("color");
+            this.color = new Color(Mathematics.Percentage.rgb(c.getInt("r")) , Mathematics.Percentage.rgb(c.getInt("g")),Mathematics.Percentage.rgb( c.getInt("b")), Mathematics.Percentage.alpha(EntrustParser.tryCreate(() -> c.getInt("a"), 100)));
+        });
     }
 
-    public String getRightNpc() {
+    public String rightNpc() {
         return rightNpc;
     }
 
-    public String getLeftNpc() {
+    public String leftNpc() {
         return leftNpc;
     }
 
-    public String getTip() {
+    public String tip() {
         return tip;
     }
 
-    public String getTitle() {
+    public String title() {
         return title;
     }
 
-    public String getSubtitle() {
+    public String subtitle() {
         return subtitle;
     }
 
-    public String getBackground() {
+    public String background() {
         return background;
     }
 
-    public String getMessage() {
-        return message;
+    public String message() {
+        return formatConstant(message);
     }
 
-    public boolean isMonotonous() {
+    public boolean monotonous() {
         return monotonous;
     }
 
     public boolean hasBackground() {
-        return !background.equals("");
+        return ! background.equals("");
     }
 
     public boolean hasLeftNpc() {
-        return !leftNpc.equals("");
+        return ! leftNpc.equals("");
     }
 
     public boolean hasRightNpc() {
-        return !rightNpc.equals("");
+        return ! rightNpc.equals("");
     }
 
-    public boolean drawDialogBox() {
+    public boolean dialogBox() {
         return drawDialogBox;
     }
 
-    public int getTime() {
+    public int time() {
         return time;
+    }
+
+    public Color color() {
+        return color;
     }
 }
